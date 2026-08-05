@@ -23,6 +23,7 @@ import datetime as dt
 
 from sqlalchemy import (
     JSON,
+    BigInteger,
     Boolean,
     Date,
     DateTime,
@@ -51,12 +52,21 @@ class Asset(Base):
     currency: Mapped[str] = mapped_column(String(3), nullable=False, default="USD")
     first_available: Mapped[dt.date | None] = mapped_column(Date, nullable=True)
 
-    prices: Mapped[list["Price"]] = relationship(back_populates="asset")
-    returns: Mapped[list["Return"]] = relationship(back_populates="asset")
+    prices: Mapped[list[Price]] = relationship(back_populates="asset")
+    returns: Mapped[list[Return]] = relationship(back_populates="asset")
 
 
 class Price(Base):
-    """Immutable landing table for raw + adjusted OHLC-derived prices. Never updated in place."""
+    """Immutable landing table for close/adjusted-close prices. Never updated in place.
+
+    `close` is split-adjusted but NOT dividend-adjusted (Yahoo Finance's "Close" field with
+    auto_adjust=False -- historical splits are already retroactively folded in by the vendor, so
+    this is not a truly "as traded on the day" raw price; yfinance does not expose that).
+    `adj_close` is split- AND dividend-adjusted (Yahoo's "Adj Close") and is the series used for
+    all return construction -- see docs/DATA.md and tests/data_quality/test_corporate_actions.py
+    for the spot-check confirming both series are continuous (no artificial jump) across known
+    stock splits.
+    """
 
     __tablename__ = "prices"
     __table_args__ = (
@@ -69,14 +79,14 @@ class Price(Base):
     asset_id: Mapped[int] = mapped_column(ForeignKey("assets.asset_id"), nullable=False, index=True)
     price_date: Mapped[dt.date] = mapped_column(Date, nullable=False, index=True)
     adj_close: Mapped[float] = mapped_column(Numeric(18, 6), nullable=False)
-    raw_close: Mapped[float] = mapped_column(Numeric(18, 6), nullable=False)
-    volume: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    close: Mapped[float] = mapped_column(Numeric(18, 6), nullable=False)
+    volume: Mapped[int | None] = mapped_column(BigInteger, nullable=True)
     source: Mapped[str] = mapped_column(String(20), nullable=False)
     ingested_at: Mapped[dt.datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, server_default=func.now()
     )
 
-    asset: Mapped["Asset"] = relationship(back_populates="prices")
+    asset: Mapped[Asset] = relationship(back_populates="prices")
 
 
 class Return(Base):
@@ -98,7 +108,7 @@ class Return(Base):
         DateTime(timezone=True), nullable=False, server_default=func.now()
     )
 
-    asset: Mapped["Asset"] = relationship(back_populates="returns")
+    asset: Mapped[Asset] = relationship(back_populates="returns")
 
 
 class Portfolio(Base):
@@ -111,7 +121,7 @@ class Portfolio(Base):
         DateTime(timezone=True), nullable=False, server_default=func.now()
     )
 
-    positions: Mapped[list["Position"]] = relationship(back_populates="portfolio")
+    positions: Mapped[list[Position]] = relationship(back_populates="portfolio")
 
 
 class Position(Base):
@@ -132,8 +142,8 @@ class Position(Base):
     as_of_date: Mapped[dt.date] = mapped_column(Date, nullable=False, index=True)
     quantity: Mapped[float] = mapped_column(Numeric(18, 6), nullable=False)
 
-    portfolio: Mapped["Portfolio"] = relationship(back_populates="positions")
-    asset: Mapped["Asset"] = relationship()
+    portfolio: Mapped[Portfolio] = relationship(back_populates="positions")
+    asset: Mapped[Asset] = relationship()
 
 
 class ModelConfig(Base):
@@ -190,9 +200,9 @@ class RiskRun(Base):
         DateTime(timezone=True), nullable=False, server_default=func.now()
     )
 
-    var_results: Mapped[list["VarResult"]] = relationship(back_populates="risk_run")
-    cvar_results: Mapped[list["CvarResult"]] = relationship(back_populates="risk_run")
-    decompositions: Mapped[list["RiskDecomposition"]] = relationship(back_populates="risk_run")
+    var_results: Mapped[list[VarResult]] = relationship(back_populates="risk_run")
+    cvar_results: Mapped[list[CvarResult]] = relationship(back_populates="risk_run")
+    decompositions: Mapped[list[RiskDecomposition]] = relationship(back_populates="risk_run")
 
 
 class VarResult(Base):
@@ -210,7 +220,7 @@ class VarResult(Base):
     var_value: Mapped[float] = mapped_column(Float, nullable=False)  # positive loss number
     horizon_days: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
 
-    risk_run: Mapped["RiskRun"] = relationship(back_populates="var_results")
+    risk_run: Mapped[RiskRun] = relationship(back_populates="var_results")
 
 
 class CvarResult(Base):
@@ -227,7 +237,7 @@ class CvarResult(Base):
     confidence_level: Mapped[float] = mapped_column(Float, nullable=False)
     cvar_value: Mapped[float] = mapped_column(Float, nullable=False)  # positive loss number
 
-    risk_run: Mapped["RiskRun"] = relationship(back_populates="cvar_results")
+    risk_run: Mapped[RiskRun] = relationship(back_populates="cvar_results")
 
 
 class RiskDecomposition(Base):
@@ -243,7 +253,7 @@ class RiskDecomposition(Base):
     marginal_var: Mapped[float] = mapped_column(Float, nullable=False)
     pct_contribution: Mapped[float] = mapped_column(Float, nullable=False)
 
-    risk_run: Mapped["RiskRun"] = relationship(back_populates="decompositions")
+    risk_run: Mapped[RiskRun] = relationship(back_populates="decompositions")
 
 
 class BacktestResult(Base):
@@ -282,7 +292,7 @@ class BacktestResult(Base):
         DateTime(timezone=True), nullable=False, server_default=func.now()
     )
 
-    exceptions: Mapped[list["BacktestException"]] = relationship(back_populates="backtest")
+    exceptions: Mapped[list[BacktestException]] = relationship(back_populates="backtest")
 
 
 class BacktestException(Base):
@@ -306,7 +316,7 @@ class BacktestException(Base):
     realised_pnl: Mapped[float] = mapped_column(Float, nullable=False)
     is_exception: Mapped[bool] = mapped_column(Boolean, nullable=False)
 
-    backtest: Mapped["BacktestResult"] = relationship(back_populates="exceptions")
+    backtest: Mapped[BacktestResult] = relationship(back_populates="exceptions")
 
 
 class StressResult(Base):

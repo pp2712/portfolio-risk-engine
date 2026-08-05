@@ -5,6 +5,7 @@ from __future__ import annotations
 import datetime as dt
 
 import pytest
+from sqlalchemy.exc import IntegrityError
 
 from risk_engine.db.models import Asset, Portfolio, Position, Price
 
@@ -30,7 +31,7 @@ def test_price_immutability_allows_correction_rows(db_session):
         asset_id=asset.asset_id,
         price_date=dt.date(2024, 1, 2),
         adj_close=100.0,
-        raw_close=100.0,
+        close=100.0,
         source="yfinance",
     )
     db_session.add(p1)
@@ -41,7 +42,7 @@ def test_price_immutability_allows_correction_rows(db_session):
         asset_id=asset.asset_id,
         price_date=dt.date(2024, 1, 2),
         adj_close=100.5,
-        raw_close=100.5,
+        close=100.5,
         source="yfinance",
     )
     db_session.add(p2)
@@ -75,5 +76,5 @@ def test_position_uniqueness_per_asset_date(db_session):
             quantity=50,
         )
     )
-    with pytest.raises(Exception):
+    with pytest.raises(IntegrityError):
         db_session.commit()
