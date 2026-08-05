@@ -52,3 +52,9 @@ ETFS: tuple[AssetSpec, ...] = (
 
 UNIVERSE: tuple[AssetSpec, ...] = EQUITIES + ETFS
 TICKERS: tuple[str, ...] = tuple(a.ticker for a in UNIVERSE)
+
+# Not a portfolio holding -- ingested purely as the broad-market factor proxy for regression-based
+# factor-beta estimation (stress/factor_model.py). Kept out of UNIVERSE/TICKERS so it never shows
+# up as an investable asset in the portfolio-construction UI/API.
+MARKET_FACTOR_PROXY = AssetSpec("SPY", "SPDR S&P 500 ETF Trust", "INDEX_PROXY", "Broad Market")
+
