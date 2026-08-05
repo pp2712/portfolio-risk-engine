@@ -11,9 +11,9 @@ from sqlalchemy import select
 from risk_engine.db.models import Asset, ModelConfig, Portfolio, Position, Price, Return
 
 
-def seed_synthetic_portfolio(db, n_days=300, n_assets=3, seed=0, start=dt.date(2023, 1, 2)):
+def seed_synthetic_portfolio(db, n_days=300, n_assets=3, seed=0, start=dt.date(2023, 1, 2), ticker_prefix="SYN"):
     rng = np.random.default_rng(seed)
-    tickers = [f"SYN{i}" for i in range(n_assets)]
+    tickers = [f"{ticker_prefix}{i}" for i in range(n_assets)]
     dates = [start + dt.timedelta(days=i) for i in range(n_days)]
 
     assets = []
