@@ -32,6 +32,8 @@ class PositionOut(BaseModel):
     ticker: str
     quantity: float
     as_of_date: dt.date
+    market_value: float | None = None
+    weight: float | None = None
 
 
 class PortfolioDetailOut(BaseModel):
@@ -40,3 +42,6 @@ class PortfolioDetailOut(BaseModel):
     base_currency: str
     created_at: dt.datetime
     positions: list[PositionOut]
+    portfolio_value: float | None = None
+    concentration_hhi: float | None = None
+    valuation_date: dt.date | None = None

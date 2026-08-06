@@ -52,3 +52,5 @@ class RiskRunResultOut(BaseModel):
     config: ModelConfigOut
     data_snapshot_hash: str
     calculated_at: dt.datetime
+    volatility: float | None = None  # annualised, over the run's lookback window
+    max_drawdown: float | None = None  # over the same window, positive fraction

@@ -36,10 +36,21 @@ def test_full_risk_workflow_through_api(client, api_key_headers, db_session):
     assert resp.status_code == 200, resp.text
     assert len(resp.json()["positions"]) == 3
 
-    # 3. Fetch the portfolio back.
+    # 3. Fetch the portfolio back -- including the computed valuation fields (dashboard redesign
+    # addition: weight/market_value per position, portfolio_value, concentration_hhi).
     resp = client.get(f"/portfolios/{portfolio_id}")
     assert resp.status_code == 200
-    assert resp.json()["name"] == "E2E Portfolio"
+    portfolio_body = resp.json()
+    assert portfolio_body["name"] == "E2E Portfolio"
+    assert portfolio_body["portfolio_value"] > 0
+    # HHI = sum(w_i^2) for 3 positive weights summing to 1 is minimised (exactly 1/3) only at
+    # equal weights and is always < 1; equal quantities with differing prices won't land exactly
+    # on 1/3, so assert the mathematically-required bounds rather than an exact value.
+    assert 1 / 3 - 1e-9 <= portfolio_body["concentration_hhi"] < 1.0
+    for position in portfolio_body["positions"]:
+        assert position["market_value"] > 0
+        assert 0 < position["weight"] < 1
+    assert sum(p["weight"] for p in portfolio_body["positions"]) == pytest.approx(1.0, abs=1e-9)
 
     # 4. Create a model config.
     resp = client.post(
@@ -68,6 +79,9 @@ def test_full_risk_workflow_through_api(client, api_key_headers, db_session):
             assert cvar_val >= var_val - 1e-9, f"{method}/{conf_key}: CVaR < VaR"
     assert len(body["decomposition"]) == 3
     assert body["data_snapshot_hash"]
+    # Volatility/max_drawdown (dashboard redesign addition, same logic as the HTML report).
+    assert body["volatility"] > 0
+    assert 0 <= body["max_drawdown"] < 1
 
     # 7. Trigger + fetch a backtest.
     window_start = (as_of_date - dt.timedelta(days=90)).isoformat()
