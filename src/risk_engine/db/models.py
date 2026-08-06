@@ -25,6 +25,7 @@ from sqlalchemy import (
     JSON,
     BigInteger,
     Boolean,
+    CheckConstraint,
     Date,
     DateTime,
     Float,
@@ -125,13 +126,21 @@ class Portfolio(Base):
 
 
 class Position(Base):
-    """A portfolio's holding of one asset as of one date. Long-only (quantity >= 0) for MVP."""
+    """A portfolio's holding of one asset as of one date. Long-only (quantity > 0) for MVP.
+
+    The Pydantic API schema (`api/schemas/portfolio.py::PositionIn`) already rejects
+    non-positive quantities, but that's only a defense against the API path -- a direct DB write
+    (a script, a future code path, a migration) would bypass it. The CHECK constraint below makes
+    the long-only invariant structurally true regardless of entry point, matching the same
+    "physically incapable" standard applied to leakage prevention (see CLAUDE.md).
+    """
 
     __tablename__ = "positions"
     __table_args__ = (
         UniqueConstraint(
             "portfolio_id", "asset_id", "as_of_date", name="uq_positions_portfolio_asset_date"
         ),
+        CheckConstraint("quantity > 0", name="ck_positions_quantity_positive"),
     )
 
     position_id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)

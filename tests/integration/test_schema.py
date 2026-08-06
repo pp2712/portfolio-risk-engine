@@ -78,3 +78,18 @@ def test_position_uniqueness_per_asset_date(db_session):
     )
     with pytest.raises(IntegrityError):
         db_session.commit()
+
+
+def test_position_quantity_must_be_positive_at_db_level(db_session):
+    """Long-only is enforced structurally (CHECK constraint), not just by the API's Pydantic
+    schema -- a direct DB write bypassing the API must still be rejected."""
+    portfolio = Portfolio(name="Test Portfolio", base_currency="USD")
+    asset = Asset(ticker="BAC", name="Bank of America", asset_class="EQUITY", currency="USD")
+    db_session.add_all([portfolio, asset])
+    db_session.flush()
+
+    db_session.add(
+        Position(portfolio_id=portfolio.portfolio_id, asset_id=asset.asset_id, as_of_date=dt.date(2024, 1, 2), quantity=-10)
+    )
+    with pytest.raises(IntegrityError):
+        db_session.commit()
