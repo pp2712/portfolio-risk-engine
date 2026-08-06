@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from risk_engine.api.deps import get_db, require_api_key
@@ -9,11 +10,29 @@ from risk_engine.api.schemas.stress import (
     ScenarioOut,
     StressRunRequest,
     StressRunResultOut,
+    StressRunSummaryOut,
 )
 from risk_engine.api.services.stress_service import StressRunError, execute_stress_run
 from risk_engine.db.models import Scenario, StressResult
 
 router = APIRouter(tags=["stress"])
+
+
+@router.get("/stress/runs", response_model=list[StressRunSummaryOut])
+def list_stress_runs(portfolio_id: int, db: Session = Depends(get_db)) -> list[StressRunSummaryOut]:
+    rows = db.execute(
+        select(StressResult, Scenario.name)
+        .join(Scenario, Scenario.scenario_id == StressResult.scenario_id)
+        .where(StressResult.portfolio_id == portfolio_id)
+        .order_by(StressResult.calculated_at.desc())
+    ).all()
+    return [
+        StressRunSummaryOut(
+            stress_result_id=sr.stress_result_id, scenario_id=sr.scenario_id, scenario_name=name,
+            as_of_date=sr.as_of_date, portfolio_pnl=sr.portfolio_pnl, portfolio_pnl_pct=sr.portfolio_pnl_pct,
+        )
+        for sr, name in rows
+    ]
 
 
 @router.get("/scenarios", response_model=list[ScenarioOut])

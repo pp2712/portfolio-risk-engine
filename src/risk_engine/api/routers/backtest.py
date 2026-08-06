@@ -9,12 +9,20 @@ from risk_engine.api.schemas.backtest import (
     BacktestAccepted,
     BacktestRequest,
     BacktestResultOut,
+    BacktestSummaryOut,
     ExceptionPoint,
 )
 from risk_engine.api.services.backtest_service import BacktestError, execute_backtest
 from risk_engine.db.models import BacktestException, BacktestResult
 
 router = APIRouter(prefix="/risk", tags=["backtest"])
+
+
+@router.get("/backtest", response_model=list[BacktestSummaryOut])
+def list_backtests(portfolio_id: int, db: Session = Depends(get_db)) -> list[BacktestResult]:
+    return list(
+        db.execute(select(BacktestResult).where(BacktestResult.portfolio_id == portfolio_id).order_by(BacktestResult.calculated_at.desc())).scalars()
+    )
 
 
 @router.post("/backtest", response_model=BacktestAccepted, status_code=status.HTTP_202_ACCEPTED, dependencies=[Depends(require_api_key)])

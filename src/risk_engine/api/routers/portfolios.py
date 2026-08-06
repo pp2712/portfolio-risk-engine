@@ -17,6 +17,11 @@ from risk_engine.db.models import Asset, Portfolio, Position
 router = APIRouter(prefix="/portfolios", tags=["portfolios"])
 
 
+@router.get("", response_model=list[PortfolioOut])
+def list_portfolios(db: Session = Depends(get_db)) -> list[Portfolio]:
+    return list(db.execute(select(Portfolio).order_by(Portfolio.portfolio_id)).scalars())
+
+
 @router.post("", response_model=PortfolioOut, status_code=status.HTTP_201_CREATED, dependencies=[Depends(require_api_key)])
 def create_portfolio(body: PortfolioCreate, db: Session = Depends(get_db)) -> Portfolio:
     portfolio = Portfolio(name=body.name, base_currency=body.base_currency.upper())

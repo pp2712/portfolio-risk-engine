@@ -42,3 +42,12 @@ class StressRunResultOut(BaseModel):
     portfolio_pnl: float
     portfolio_pnl_pct: float
     position_contributions: dict[str, float]
+
+
+class StressRunSummaryOut(BaseModel):
+    stress_result_id: int
+    scenario_id: int
+    scenario_name: str
+    as_of_date: dt.date
+    portfolio_pnl: float
+    portfolio_pnl_pct: float

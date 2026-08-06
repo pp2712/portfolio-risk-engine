@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import datetime as dt
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class BacktestRequest(BaseModel):
@@ -17,6 +17,19 @@ class BacktestRequest(BaseModel):
 class BacktestAccepted(BaseModel):
     backtest_id: int
     status: str = "completed"
+
+
+class BacktestSummaryOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    backtest_id: int
+    method: str
+    confidence_level: float
+    window_start: dt.date
+    window_end: dt.date
+    num_observations: int
+    num_exceptions: int
+    kupiec_pass: bool
+    traffic_light_zone: str
 
 
 class ExceptionPoint(BaseModel):
