@@ -33,6 +33,11 @@ dev = [
     "mypy>=1.10",
     "types-requests",
 ]
+notebooks = [
+    "nbformat>=5.10",
+    "nbclient>=0.10",
+    "ipykernel>=6.29",
+]
 
 [build-system]
 requires = ["setuptools>=68"]
