@@ -5,12 +5,14 @@ Run: uvicorn risk_engine.api.main:app --reload --app-dir src
 
 from __future__ import annotations
 
-import logging
 from pathlib import Path
 
 from fastapi import FastAPI
+from fastapi.responses import PlainTextResponse
 from fastapi.staticfiles import StaticFiles
-from sqlalchemy import text
+from prometheus_client import CONTENT_TYPE_LATEST, generate_latest
+from sqlalchemy import select, text
+from sqlalchemy.orm import Session
 
 from risk_engine.api.routers import (
     backtest,
@@ -21,9 +23,12 @@ from risk_engine.api.routers import (
     risk,
     stress,
 )
-from risk_engine.db.session import engine
+from risk_engine.db.models import RiskRun
+from risk_engine.db.session import SessionLocal, engine
+from risk_engine.observability.logging_config import setup_json_logging
+from risk_engine.observability.metrics import request_metrics_middleware
 
-logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
+setup_json_logging()
 
 app = FastAPI(
     title="Portfolio Risk & Stress-Testing Engine",
@@ -34,6 +39,8 @@ app = FastAPI(
     ),
     version="0.1.0",
 )
+
+app.middleware("http")(request_metrics_middleware)
 
 app.include_router(portfolios.router)
 app.include_router(model_configs.router)
@@ -52,7 +59,27 @@ def health() -> dict:
         db_ok = True
     except Exception:
         db_ok = False
-    return {"status": "ok" if db_ok else "degraded", "database": "ok" if db_ok else "unreachable"}
+
+    last_pipeline_run = None
+    if db_ok:
+        db: Session = SessionLocal()
+        try:
+            last_pipeline_run = db.execute(select(RiskRun.calculated_at).order_by(RiskRun.calculated_at.desc()).limit(1)).scalar_one_or_none()
+        except Exception:
+            pass
+        finally:
+            db.close()
+
+    return {
+        "status": "ok" if db_ok else "degraded",
+        "database": "ok" if db_ok else "unreachable",
+        "last_risk_run_at": last_pipeline_run.isoformat() if last_pipeline_run else None,
+    }
+
+
+@app.get("/metrics", tags=["health"])
+def metrics() -> PlainTextResponse:
+    return PlainTextResponse(generate_latest(), media_type=CONTENT_TYPE_LATEST)
 
 
 # Dashboard: served by the API itself (docker-compose.yml note: "if built as a separate frontend

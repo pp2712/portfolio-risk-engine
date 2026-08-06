@@ -29,6 +29,7 @@ from risk_engine.db.models import (
 )
 from risk_engine.db.queries import get_latest_positions, get_latest_prices, get_returns_matrix
 from risk_engine.db.snapshot_hash import compute_data_snapshot_hash
+from risk_engine.observability.metrics import timed_calculation
 from risk_engine.portfolio.calculations import (
     compute_portfolio_returns,
     compute_portfolio_value,
@@ -120,11 +121,14 @@ def execute_risk_run(db: Session, portfolio_id: int, config_id: int, as_of_date:
 
     confidence_levels = list(config.confidence_levels)
     for i, confidence in enumerate(confidence_levels):
-        h_var, h_cvar = historical_var_cvar(portfolio_returns.to_numpy(), confidence)
-        p_var, p_cvar = parametric_var_cvar(mu_p, sigma_p, confidence)
-        mc = monte_carlo_var_cvar(
-            w_array, mu_vector, cov_matrix, confidence, config.mc_num_simulations, config.mc_random_seed
-        )
+        with timed_calculation("historical"):
+            h_var, h_cvar = historical_var_cvar(portfolio_returns.to_numpy(), confidence)
+        with timed_calculation("parametric"):
+            p_var, p_cvar = parametric_var_cvar(mu_p, sigma_p, confidence)
+        with timed_calculation("monte_carlo"):
+            mc = monte_carlo_var_cvar(
+                w_array, mu_vector, cov_matrix, confidence, config.mc_num_simulations, config.mc_random_seed
+            )
 
         for method, var_val, cvar_val in (
             ("historical", h_var, h_cvar),

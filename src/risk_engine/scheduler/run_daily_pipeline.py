@@ -37,6 +37,7 @@ from risk_engine.data.ingest import ingest_universe  # noqa: E402
 from risk_engine.data.universe import MARKET_FACTOR_PROXY, UNIVERSE  # noqa: E402
 from risk_engine.db.models import ModelConfig, Portfolio, Scenario  # noqa: E402
 from risk_engine.db.session import SessionLocal  # noqa: E402
+from risk_engine.observability.metrics import pipeline_run_total  # noqa: E402
 from risk_engine.reporting.generator import ReportGenerationError, generate_report  # noqa: E402
 
 logger = logging.getLogger("risk_engine.scheduler")
@@ -115,7 +116,11 @@ def run_daily_pipeline(as_of_date: dt.date | None = None) -> dict:
             summary["portfolios"].append(entry)
             logger.info("pipeline complete for portfolio %s: %s", portfolio.portfolio_id, entry)
 
+        pipeline_run_total.labels(status="success").inc()
         return summary
+    except Exception:
+        pipeline_run_total.labels(status="failure").inc()
+        raise
     finally:
         db.close()
 
