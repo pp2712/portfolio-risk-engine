@@ -1,0 +1,74 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  lint-and-typecheck:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - run: pip install -e ".[dev]"
+      - run: ruff check src tests
+      - run: mypy src
+
+  test:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: risk_engine
+          POSTGRES_PASSWORD: ci_test_password
+          POSTGRES_DB: portfolio_risk_engine_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U risk_engine -d portfolio_risk_engine_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgresql+psycopg2://risk_engine:ci_test_password@localhost:5432/portfolio_risk_engine_test
+      TEST_DATABASE_URL: postgresql+psycopg2://risk_engine:ci_test_password@localhost:5432/portfolio_risk_engine_test
+      API_KEY: ci_test_api_key
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - run: pip install -e ".[dev]"
+      - run: alembic upgrade head
+      - run: pytest -q  # full suite -- the postgres service above satisfies integration/e2e DB dependencies
+      - name: Upload golden reference on failure (for debugging drift)
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: golden-reference
+          path: tests/golden/reference_output.json
+
+  security:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install -e . pip-audit
+      - run: pip-audit
+
+  docker-build:
+    runs-on: ubuntu-latest
+    needs: [lint-and-typecheck, test]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - run: docker build -t risk-engine:ci .
