@@ -56,6 +56,22 @@ def herfindahl_hirschman_index(weights: dict[str, float]) -> float:
     return sum(w**2 for w in weights.values())
 
 
+def max_drawdown(simple_returns: pd.Series) -> float:
+    """Largest peak-to-trough decline in cumulative wealth over the series, as a positive fraction
+    (e.g. 0.23 means a 23% drawdown). Uses simple returns (exactly-compounding, correct for a
+    wealth-index calculation -- CLAUDE.md "log returns for risk models, simple returns for P&L").
+    """
+    if len(simple_returns) == 0:
+        return 0.0
+    # Prepend a 1.0 baseline so the running peak includes the starting point (t=0), before any
+    # return has been applied -- otherwise a monotonically-declining series from day 1 would have
+    # its first (largest) value treated as the peak, understating the drawdown from the true start.
+    wealth_index = pd.concat([pd.Series([1.0]), (1.0 + simple_returns).cumprod()], ignore_index=True)
+    running_max = wealth_index.cummax()
+    drawdown = wealth_index / running_max - 1.0
+    return float(-drawdown.min())
+
+
 def diversification_benefit(standalone_vars: dict[str, float], portfolio_var: float) -> float:
     """sum(standalone position VaRs) - portfolio VaR.
 

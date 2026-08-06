@@ -10,7 +10,15 @@ import logging
 from fastapi import FastAPI
 from sqlalchemy import text
 
-from risk_engine.api.routers import backtest, history, model_configs, portfolios, risk, stress
+from risk_engine.api.routers import (
+    backtest,
+    history,
+    model_configs,
+    portfolios,
+    reports,
+    risk,
+    stress,
+)
 from risk_engine.db.session import engine
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
@@ -31,6 +39,7 @@ app.include_router(risk.router)
 app.include_router(backtest.router)
 app.include_router(stress.router)
 app.include_router(history.router)
+app.include_router(reports.router)
 
 
 @app.get("/health", tags=["health"])

@@ -68,10 +68,11 @@ def get_latest_prices(db: Session, tickers: list[str], as_of_date: dt.date) -> d
 
 
 def get_returns_matrix(
-    db: Session, tickers: list[str], as_of_date: dt.date, lookback_days: int
+    db: Session, tickers: list[str], as_of_date: dt.date, lookback_days: int, column: str = "log_return"
 ) -> pd.DataFrame:
-    """Aligned (inner-joined) log-return matrix for `tickers`, using the most recent
-    `lookback_days` observations with return_date <= as_of_date (see module docstring)."""
+    """Aligned (inner-joined) return matrix for `tickers`, using the most recent `lookback_days`
+    observations with return_date <= as_of_date (see module docstring). `column` selects
+    log_return (default, for risk models) or simple_return (for P&L/drawdown -- CLAUDE.md)."""
     if not tickers:
         return pd.DataFrame()
 
@@ -92,7 +93,7 @@ def get_returns_matrix(
 
     if not by_ticker:
         return pd.DataFrame()
-    return build_aligned_return_matrix(by_ticker, column="log_return")
+    return build_aligned_return_matrix(by_ticker, column=column)
 
 
 def get_simple_returns_window(

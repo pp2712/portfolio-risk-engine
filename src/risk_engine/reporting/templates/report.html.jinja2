@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Risk Report -- {{ portfolio.name }} -- {{ risk_run.as_of_date }}</title>
+<style>
+  body { font-family: -apple-system, Segoe UI, Helvetica, Arial, sans-serif; max-width: 980px; margin: 2rem auto; padding: 0 1rem; color: #1a1a1a; line-height: 1.5; }
+  h1 { font-size: 1.5rem; margin-bottom: 0.2rem; }
+  h2 { font-size: 1.15rem; margin-top: 2.2rem; border-bottom: 2px solid #eee; padding-bottom: 0.3rem; }
+  .meta { color: #666; font-size: 0.9rem; margin-bottom: 1.5rem; }
+  .meta code { background: #f4f4f4; padding: 0.1rem 0.3rem; border-radius: 3px; }
+  table { border-collapse: collapse; width: 100%; margin: 0.8rem 0; font-size: 0.92rem; }
+  th, td { border: 1px solid #ddd; padding: 0.4rem 0.7rem; text-align: right; }
+  th { background: #f7f7f7; text-align: right; }
+  th:first-child, td:first-child { text-align: left; }
+  .stat-row { display: flex; gap: 2rem; margin: 1rem 0; }
+  .stat { background: #f7f7f7; border-radius: 6px; padding: 0.8rem 1.2rem; }
+  .stat .label { font-size: 0.78rem; color: #666; text-transform: uppercase; letter-spacing: 0.03em; }
+  .stat .value { font-size: 1.4rem; font-weight: 600; }
+  .pass { color: #1e8449; font-weight: 600; }
+  .fail { color: #c0392b; font-weight: 600; }
+  .zone-green { color: #1e8449; font-weight: 600; }
+  .zone-amber { color: #b7791f; font-weight: 600; }
+  .zone-red { color: #c0392b; font-weight: 600; }
+  .interpretation { background: #eef6fb; border-left: 4px solid #2980b9; padding: 1rem 1.2rem; border-radius: 4px; font-size: 0.95rem; }
+  img { max-width: 100%; margin: 0.8rem 0; }
+  .footer { margin-top: 3rem; padding-top: 1rem; border-top: 1px solid #eee; color: #999; font-size: 0.78rem; }
+</style>
+</head>
+<body>
+
+<h1>Portfolio Risk Report</h1>
+<div class="meta">
+  Portfolio: <strong>{{ portfolio.name }}</strong> ({{ portfolio.base_currency }}) &middot;
+  As-of date: <strong>{{ risk_run.as_of_date }}</strong> &middot;
+  Model version: <code>{{ config.model_version }}</code> &middot;
+  Config: <code>lookback={{ config.lookback_window_days }}d, mc_sims={{ config.mc_num_simulations }}, mc_seed={{ config.mc_random_seed }}</code><br>
+  Data snapshot hash: <code>{{ risk_run.data_snapshot_hash[:16] }}...</code> &middot;
+  Calculated at: {{ risk_run.calculated_at }}
+</div>
+
+<h2>1. Portfolio Summary</h2>
+<div class="stat-row">
+  <div class="stat"><div class="label">Portfolio Value</div><div class="value">${{ "{:,.0f}".format(portfolio_value) }}</div></div>
+  <div class="stat"><div class="label">Positions</div><div class="value">{{ positions|length }}</div></div>
+  <div class="stat"><div class="label">Concentration (HHI)</div><div class="value">{{ "%.3f"|format(hhi) }}</div></div>
+  {% if volatility is not none %}<div class="stat"><div class="label">Ann. Volatility</div><div class="value">{{ "%.1f%%"|format(volatility * 100) }}</div></div>{% endif %}
+  {% if max_drawdown_pct is not none %}<div class="stat"><div class="label">Max Drawdown</div><div class="value">{{ "%.1f%%"|format(max_drawdown_pct * 100) }}</div></div>{% endif %}
+</div>
+
+<table>
+  <tr><th>Ticker</th><th>Weight</th><th>Market Value</th></tr>
+  {% for p in positions %}
+  <tr><td>{{ p.ticker }}</td><td>{{ "%.2f%%"|format(p.weight * 100) }}</td><td>${{ "{:,.0f}".format(p.market_value) }}</td></tr>
+  {% endfor %}
+</table>
+
+<h2>2. Value-at-Risk (VaR)</h2>
+<table>
+  <tr><th>Method</th>{% for c in confidence_levels %}<th>{{ "%.0f%%"|format(c * 100) }}</th>{% endfor %}</tr>
+  {% for method in methods %}
+  <tr><td>{{ method|capitalize }}</td>{% for c in confidence_levels %}<td>{{ "%.2f%%"|format(var[method].get("%.2f"|format(c), 0) * 100) }}</td>{% endfor %}</tr>
+  {% endfor %}
+</table>
+
+<h2>3. Conditional VaR / Expected Shortfall (CVaR)</h2>
+<table>
+  <tr><th>Method</th>{% for c in confidence_levels %}<th>{{ "%.0f%%"|format(c * 100) }}</th>{% endfor %}</tr>
+  {% for method in methods %}
+  <tr><td>{{ method|capitalize }}</td>{% for c in confidence_levels %}<td>{{ "%.2f%%"|format(cvar[method].get("%.2f"|format(c), 0) * 100) }}</td>{% endfor %}</tr>
+  {% endfor %}
+</table>
+
+{% if model_comparison_chart_b64 %}
+<img src="data:image/png;base64,{{ model_comparison_chart_b64 }}" alt="Model comparison chart">
+{% endif %}
+
+<h2>4. Risk Decomposition</h2>
+<table>
+  <tr><th>Ticker</th><th>Component VaR</th><th>Marginal VaR</th><th>% Contribution</th></tr>
+  {% for d in decomposition %}
+  <tr><td>{{ d.ticker }}</td><td>{{ "%.2f%%"|format(d.component_var * 100) }}</td><td>{{ "%.2f%%"|format(d.marginal_var * 100) }}</td><td>{{ "%.1f%%"|format(d.pct_contribution * 100) }}</td></tr>
+  {% endfor %}
+</table>
+{% if decomposition_chart_b64 %}<img src="data:image/png;base64,{{ decomposition_chart_b64 }}" alt="Risk decomposition chart">{% endif %}
+
+{% if backtest %}
+<h2>5. Backtesting &amp; Model Validation</h2>
+<div class="stat-row">
+  <div class="stat"><div class="label">Method / Confidence</div><div class="value">{{ backtest.method }} / {{ "%.0f%%"|format(backtest.confidence_level * 100) }}</div></div>
+  <div class="stat"><div class="label">Observations</div><div class="value">{{ backtest.num_observations }}</div></div>
+  <div class="stat"><div class="label">Exceptions</div><div class="value">{{ backtest.num_exceptions }}</div></div>
+  <div class="stat"><div class="label">Traffic Light</div><div class="value zone-{{ backtest.traffic_light_zone }}">{{ backtest.traffic_light_zone|upper }}</div></div>
+</div>
+<table>
+  <tr><th>Test</th><th>Statistic</th><th>p-value</th><th>Result</th></tr>
+  <tr><td>Kupiec POF</td><td>{{ "%.3f"|format(backtest.kupiec_stat) }}</td><td>{{ "%.4f"|format(backtest.kupiec_pvalue) }}</td><td class="{{ 'pass' if backtest.kupiec_pass else 'fail' }}">{{ 'PASS' if backtest.kupiec_pass else 'FAIL' }}</td></tr>
+  {% if backtest.christoffersen_stat is not none %}
+  <tr><td>Christoffersen Independence</td><td>{{ "%.3f"|format(backtest.christoffersen_stat) }}</td><td>{{ "%.4f"|format(backtest.christoffersen_pvalue) }}</td><td class="{{ 'pass' if backtest.christoffersen_pass else 'fail' }}">{{ 'PASS' if backtest.christoffersen_pass else 'FAIL' }}</td></tr>
+  {% endif %}
+  {% if backtest.conditional_coverage_stat is not none %}
+  <tr><td>Conditional Coverage</td><td>{{ "%.3f"|format(backtest.conditional_coverage_stat) }}</td><td>{{ "%.4f"|format(backtest.conditional_coverage_pvalue) }}</td><td class="{{ 'pass' if backtest.conditional_coverage_pass else 'fail' }}">{{ 'PASS' if backtest.conditional_coverage_pass else 'FAIL' }}</td></tr>
+  {% endif %}
+</table>
+{% if exception_chart_b64 %}<img src="data:image/png;base64,{{ exception_chart_b64 }}" alt="Exception series chart">{% endif %}
+{% endif %}
+
+{% if stress_results %}
+<h2>6. Stress Testing</h2>
+<table>
+  <tr><th>Scenario</th><th>Portfolio P&amp;L</th><th>P&amp;L %</th></tr>
+  {% for s in stress_results %}
+  <tr><td>{{ s.scenario_name }}</td><td>${{ "{:,.0f}".format(s.portfolio_pnl) }}</td><td>{{ "%.2f%%"|format(s.portfolio_pnl_pct * 100) }}</td></tr>
+  {% endfor %}
+</table>
+{% if stress_chart_b64 %}<img src="data:image/png;base64,{{ stress_chart_b64 }}" alt="Stress scenario comparison">{% endif %}
+{% endif %}
+
+<h2>7. Interpretation</h2>
+<div class="interpretation">{{ interpretation }}</div>
+
+<div class="footer">
+  Generated by Portfolio Risk &amp; Stress-Testing Engine v{{ config.model_version }}. This report is fully reproducible from
+  risk_run_id={{ risk_run.risk_run_id }}, config_id={{ config.config_id }}, and data_snapshot_hash={{ risk_run.data_snapshot_hash }}.
+</div>
+
+</body>
+</html>
