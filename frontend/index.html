@@ -4,94 +4,33 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Portfolio Risk & Stress-Testing Engine</title>
+<meta name="description" content="Institutional portfolio risk and stress-testing platform -- VaR/CVaR, model validation, and scenario analysis.">
+
+<!-- Theme is stamped before first paint to avoid a flash of the wrong theme. -->
+<script>
+  (function () {
+    var stored = localStorage.getItem("risk-engine-theme") || "dark";
+    document.documentElement.setAttribute("data-theme", stored);
+  })();
+</script>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="styles/tokens.css">
+<link rel="stylesheet" href="styles/base.css">
+<link rel="stylesheet" href="styles/layout.css">
+<link rel="stylesheet" href="styles/components.css">
+
 <script src="https://cdn.plot.ly/plotly-2.32.0.min.js"></script>
-<link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-<header>
-  <h1>Portfolio Risk &amp; Stress-Testing Engine</h1>
-  <div class="portfolio-selector">
-    <label for="portfolio-select">Portfolio:</label>
-    <select id="portfolio-select"></select>
-    <span id="api-status" class="api-status">connecting...</span>
-  </div>
-</header>
+<a href="#app-main" class="skip-link">Skip to main content</a>
 
-<nav id="tabs">
-  <button class="tab-btn active" data-tab="overview">Overview</button>
-  <button class="tab-btn" data-tab="portfolio">Portfolio</button>
-  <button class="tab-btn" data-tab="var-cvar">VaR / CVaR</button>
-  <button class="tab-btn" data-tab="model-comparison">Model Comparison</button>
-  <button class="tab-btn" data-tab="backtesting">Backtesting</button>
-  <button class="tab-btn" data-tab="stress">Stress Testing</button>
-  <button class="tab-btn" data-tab="decomposition">Risk Decomposition</button>
-  <button class="tab-btn" data-tab="historical">Historical Risk</button>
-  <button class="tab-btn" data-tab="reports">Reports</button>
-</nav>
+<div class="app-shell" id="app-shell">
+  <!-- Sidebar, header, and main content are rendered by js/main.js -->
+</div>
 
-<main>
-  <section id="tab-overview" class="tab-panel active">
-    <h2>Overview</h2>
-    <div id="overview-content">Loading...</div>
-  </section>
-
-  <section id="tab-portfolio" class="tab-panel">
-    <h2>Portfolio</h2>
-    <div class="grid-2">
-      <div id="portfolio-table"></div>
-      <div id="portfolio-pie" class="chart"></div>
-    </div>
-  </section>
-
-  <section id="tab-var-cvar" class="tab-panel">
-    <h2>VaR / CVaR</h2>
-    <div class="controls">
-      <label>Confidence:
-        <select id="confidence-select"><option value="0.95">95%</option><option value="0.99">99%</option></select>
-      </label>
-    </div>
-    <div id="var-cvar-table"></div>
-    <div id="var-cvar-chart" class="chart"></div>
-  </section>
-
-  <section id="tab-model-comparison" class="tab-panel">
-    <h2>Model Comparison</h2>
-    <p class="hint">Historical vs. Parametric vs. Monte Carlo VaR over time -- where and when do the models diverge?</p>
-    <div id="model-comparison-chart" class="chart"></div>
-  </section>
-
-  <section id="tab-backtesting" class="tab-panel">
-    <h2>Backtesting</h2>
-    <div id="backtest-summary"></div>
-    <div id="exception-chart" class="chart"></div>
-  </section>
-
-  <section id="tab-stress" class="tab-panel">
-    <h2>Stress Testing</h2>
-    <div id="stress-table"></div>
-    <div id="stress-chart" class="chart"></div>
-  </section>
-
-  <section id="tab-decomposition" class="tab-panel">
-    <h2>Risk Decomposition</h2>
-    <p class="hint">Component VaR by position (sums exactly to total portfolio VaR).</p>
-    <div id="decomposition-chart" class="chart"></div>
-  </section>
-
-  <section id="tab-historical" class="tab-panel">
-    <h2>Historical Risk</h2>
-    <p class="hint">VaR/CVaR across all methods over time for this portfolio.</p>
-    <div id="historical-chart" class="chart"></div>
-  </section>
-
-  <section id="tab-reports" class="tab-panel">
-    <h2>Reports</h2>
-    <div id="reports-table"></div>
-  </section>
-</main>
-
-<script src="config.js"></script>
-<script src="app.js"></script>
+<script type="module" src="js/main.js"></script>
 </body>
 </html>

@@ -1,0 +1,211 @@
+/*
+  Design tokens -- Portfolio Risk & Stress-Testing Engine.
+
+  Palette derivation: the categorical/status/sequential hues below are the validated reference
+  instance from the dataviz skill (references/palette.md) -- adjacent-pair CVD ΔE >= 8 (OKLab x100)
+  and normal-vision ΔE >= 15 in both light and dark, checked against each mode's own chart surface.
+  Chrome (surfaces/ink/gridlines) is the same reference set. Nothing here was eyeballed.
+
+  Dark is the primary/default theme (institutional risk-terminal aesthetic); light is a fully
+  specified alternate, not an automatic invert -- both draw from the same validated token pairs.
+*/
+
+:root,
+:root[data-theme="dark"] {
+  color-scheme: dark;
+
+  /* Surfaces */
+  --bg-app: #0d0d0d;
+  --bg-surface: #15161a;
+  --bg-surface-raised: #1c1e23;
+  --bg-inset: #101114;
+  --bg-hover: rgba(255, 255, 255, 0.045);
+  --bg-selected: rgba(57, 135, 229, 0.14);
+
+  /* Ink */
+  --text-primary: #f5f5f4;
+  --text-secondary: #c3c2b7;
+  --text-muted: #898781;
+  --text-inverse: #0b0b0b;
+
+  /* Structure */
+  --border-subtle: rgba(255, 255, 255, 0.08);
+  --border-default: rgba(255, 255, 255, 0.12);
+  --border-strong: rgba(255, 255, 255, 0.20);
+  --grid-line: #26282e;
+  --axis-line: #383a40;
+
+  /* Accent (interactive / selected) */
+  --accent: #3987e5;
+  --accent-strong: #5b9df0;
+  --accent-wash: rgba(57, 135, 229, 0.14);
+
+  /* Categorical series (fixed order -- never cycled past 3 without folding to "Other") */
+  --series-1: #3987e5; /* blue */
+  --series-2: #d95926; /* orange */
+  --series-3: #199e70; /* aqua */
+  --series-4: #c98500; /* yellow */
+  --series-5: #d55181; /* magenta */
+
+  /* Status (fixed hex across both themes -- contrast is what changes) */
+  --status-good: #0ca30c;
+  --status-warning: #fab219;
+  --status-serious: #ec835a;
+  --status-critical: #d03b3b;
+  --status-good-wash: rgba(12, 163, 12, 0.14);
+  --status-warning-wash: rgba(250, 178, 25, 0.14);
+  --status-serious-wash: rgba(236, 131, 90, 0.14);
+  --status-critical-wash: rgba(208, 59, 59, 0.14);
+
+  /* Delta / P&L */
+  --delta-positive: #0ca30c;
+  --delta-negative: #e66767;
+
+  /* Elevation */
+  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.04);
+  --shadow-popover: 0 8px 24px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(255, 255, 255, 0.06);
+}
+
+:root[data-theme="light"] {
+  color-scheme: light;
+
+  --bg-app: #f4f4f2;
+  --bg-surface: #fcfcfb;
+  --bg-surface-raised: #ffffff;
+  --bg-inset: #f0efec;
+  --bg-hover: rgba(11, 11, 11, 0.035);
+  --bg-selected: rgba(42, 120, 214, 0.10);
+
+  --text-primary: #0b0b0b;
+  --text-secondary: #52514e;
+  --text-muted: #7a7972;
+  --text-inverse: #ffffff;
+
+  --border-subtle: rgba(11, 11, 11, 0.08);
+  --border-default: rgba(11, 11, 11, 0.12);
+  --border-strong: rgba(11, 11, 11, 0.22);
+  --grid-line: #e5e4dd;
+  --axis-line: #c3c2b7;
+
+  --accent: #2a78d6;
+  --accent-strong: #1c5cab;
+  --accent-wash: rgba(42, 120, 214, 0.10);
+
+  --series-1: #2a78d6;
+  --series-2: #eb6834;
+  --series-3: #1baf7a;
+  --series-4: #eda100;
+  --series-5: #e87ba4;
+
+  --status-good: #0ca30c;
+  --status-warning: #fab219;
+  --status-serious: #ec835a;
+  --status-critical: #d03b3b;
+  --status-good-wash: rgba(12, 163, 12, 0.10);
+  --status-warning-wash: rgba(250, 178, 25, 0.16);
+  --status-serious-wash: rgba(236, 131, 90, 0.14);
+  --status-critical-wash: rgba(208, 59, 59, 0.10);
+
+  --delta-positive: #006300;
+  --delta-negative: #d03b3b;
+
+  --shadow-card: 0 1px 2px rgba(11, 11, 11, 0.06), 0 0 0 1px rgba(11, 11, 11, 0.05);
+  --shadow-popover: 0 8px 24px rgba(11, 11, 11, 0.14), 0 0 0 1px rgba(11, 11, 11, 0.06);
+}
+
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) {
+    color-scheme: light;
+    --bg-app: #f4f4f2;
+    --bg-surface: #fcfcfb;
+    --bg-surface-raised: #ffffff;
+    --bg-inset: #f0efec;
+    --bg-hover: rgba(11, 11, 11, 0.035);
+    --bg-selected: rgba(42, 120, 214, 0.10);
+    --text-primary: #0b0b0b;
+    --text-secondary: #52514e;
+    --text-muted: #7a7972;
+    --text-inverse: #ffffff;
+    --border-subtle: rgba(11, 11, 11, 0.08);
+    --border-default: rgba(11, 11, 11, 0.12);
+    --border-strong: rgba(11, 11, 11, 0.22);
+    --grid-line: #e5e4dd;
+    --axis-line: #c3c2b7;
+    --accent: #2a78d6;
+    --accent-strong: #1c5cab;
+    --accent-wash: rgba(42, 120, 214, 0.10);
+    --series-1: #2a78d6;
+    --series-2: #eb6834;
+    --series-3: #1baf7a;
+    --series-4: #eda100;
+    --series-5: #e87ba4;
+    --status-good-wash: rgba(12, 163, 12, 0.10);
+    --status-warning-wash: rgba(250, 178, 25, 0.16);
+    --status-serious-wash: rgba(236, 131, 90, 0.14);
+    --status-critical-wash: rgba(208, 59, 59, 0.10);
+    --delta-positive: #006300;
+    --delta-negative: #d03b3b;
+    --shadow-card: 0 1px 2px rgba(11, 11, 11, 0.06), 0 0 0 1px rgba(11, 11, 11, 0.05);
+    --shadow-popover: 0 8px 24px rgba(11, 11, 11, 0.14), 0 0 0 1px rgba(11, 11, 11, 0.06);
+  }
+}
+
+:root {
+  /* Typography */
+  --font-ui: "Inter", -apple-system, "Segoe UI", Helvetica, Arial, sans-serif;
+  --font-mono: "IBM Plex Mono", "SF Mono", "Cascadia Mono", Consolas, monospace;
+
+  --text-2xs: 0.6875rem;   /* 11px */
+  --text-xs: 0.75rem;      /* 12px */
+  --text-sm: 0.8125rem;    /* 13px */
+  --text-base: 0.875rem;   /* 14px */
+  --text-md: 0.9375rem;    /* 15px */
+  --text-lg: 1.0625rem;    /* 17px */
+  --text-xl: 1.375rem;     /* 22px */
+  --text-2xl: 1.75rem;     /* 28px */
+  --text-3xl: 2.25rem;     /* 36px */
+
+  --weight-regular: 400;
+  --weight-medium: 500;
+  --weight-semibold: 600;
+  --weight-bold: 700;
+
+  --leading-tight: 1.2;
+  --leading-normal: 1.5;
+
+  /* Spacing scale (4px base) */
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.25rem;
+  --space-6: 1.5rem;
+  --space-8: 2rem;
+  --space-10: 2.5rem;
+  --space-12: 3rem;
+  --space-16: 4rem;
+
+  /* Radius -- restrained, not "everything is a rounded blob" */
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 10px;
+  --radius-full: 999px;
+
+  /* Layout */
+  --sidebar-width: 232px;
+  --sidebar-width-collapsed: 64px;
+  --header-height: 56px;
+  --content-max-width: 1400px;
+
+  /* Motion -- subtle, functional only */
+  --ease-standard: cubic-bezier(0.2, 0, 0, 1);
+  --duration-fast: 120ms;
+  --duration-base: 180ms;
+
+  /* z-index scale */
+  --z-sidebar: 20;
+  --z-header: 30;
+  --z-popover: 40;
+  --z-modal: 50;
+  --z-toast: 60;
+}
