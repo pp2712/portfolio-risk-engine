@@ -6,8 +6,10 @@ Run: uvicorn risk_engine.api.main:app --reload --app-dir src
 from __future__ import annotations
 
 import logging
+from pathlib import Path
 
 from fastapi import FastAPI
+from fastapi.staticfiles import StaticFiles
 from sqlalchemy import text
 
 from risk_engine.api.routers import (
@@ -51,3 +53,10 @@ def health() -> dict:
     except Exception:
         db_ok = False
     return {"status": "ok" if db_ok else "degraded", "database": "ok" if db_ok else "unreachable"}
+
+
+# Dashboard: served by the API itself (docker-compose.yml note: "if built as a separate frontend
+# service; otherwise served by `api`" -- we chose the latter, no separate frontend container).
+_frontend_dir = Path(__file__).resolve().parents[3] / "frontend"
+if _frontend_dir.exists():
+    app.mount("/dashboard", StaticFiles(directory=str(_frontend_dir), html=True), name="dashboard")

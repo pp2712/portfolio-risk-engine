@@ -4,13 +4,40 @@ from pathlib import Path
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.responses import HTMLResponse
+from pydantic import BaseModel
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from risk_engine.api.deps import get_db, require_api_key
-from risk_engine.db.models import Report
+from risk_engine.db.models import Report, RiskRun
 from risk_engine.reporting.generator import ReportGenerationError, generate_report
 
 router = APIRouter(prefix="/reports", tags=["reports"])
+
+
+class ReportSummaryOut(BaseModel):
+    report_id: int
+    risk_run_id: int
+    as_of_date: str
+    status: str
+    generated_at: str
+
+
+@router.get("", response_model=list[ReportSummaryOut])
+def list_reports(portfolio_id: int, db: Session = Depends(get_db)) -> list[ReportSummaryOut]:
+    rows = db.execute(
+        select(Report, RiskRun.as_of_date)
+        .join(RiskRun, RiskRun.risk_run_id == Report.risk_run_id)
+        .where(RiskRun.portfolio_id == portfolio_id)
+        .order_by(Report.generated_at.desc())
+    ).all()
+    return [
+        ReportSummaryOut(
+            report_id=r.report_id, risk_run_id=r.risk_run_id, as_of_date=str(as_of_date),
+            status=r.status, generated_at=str(r.generated_at),
+        )
+        for r, as_of_date in rows
+    ]
 
 
 @router.get("/{risk_run_id}", response_class=HTMLResponse)

@@ -142,8 +142,9 @@ Run before considering any phase done:
 # Activate venv (or just call .venv\Scripts\python.exe / .venv\Scripts\pip.exe directly)
 .venv\Scripts\Activate.ps1
 
-# Run the API
+# Run the API (dashboard is served at /dashboard/ by the same app -- see api/main.py)
 .venv\Scripts\python -m uvicorn risk_engine.api.main:app --reload --app-dir src
+# Then open http://127.0.0.1:8000/dashboard/ and http://127.0.0.1:8000/docs
 
 # Run tests
 .venv\Scripts\python -m pytest                     # full suite
